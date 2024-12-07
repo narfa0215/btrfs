@@ -316,7 +316,7 @@ end:
     return Status;
 }
 
-static NTSTATUS split_path(device_extension* Vcb, PUNICODE_STRING path, LIST_ENTRY* parts, bool* stream) {
+static NTSTATUS split_path(device_extension* Vcb, PUNICODE_STRING path, PUNICODE_STRING path0, LIST_ENTRY* parts, bool* stream) {
     ULONG len, i;
     bool has_stream;
     WCHAR* buf;
@@ -339,6 +339,10 @@ static NTSTATUS split_path(device_extension* Vcb, PUNICODE_STRING path, LIST_ENT
         } else if (path->Buffer[i] == ':') {
             has_stream = true;
         }
+    }
+
+    if (path0->Buffer[0] == '\\') {
+        has_stream = false;
     }
 
     buf = path->Buffer;
@@ -1760,7 +1764,7 @@ NTSTATUS open_fileref(_Requires_lock_held_(_Curr_->tree_lock) _Requires_exclusiv
 
     if (fnus->Length != 0 &&
         (fnus->Length != sizeof(datastring) - sizeof(WCHAR) || RtlCompareMemory(fnus->Buffer, datastring, sizeof(datastring) - sizeof(WCHAR)) != sizeof(datastring) - sizeof(WCHAR))) {
-        Status = split_path(Vcb, &fnus2, &parts, &has_stream);
+        Status = split_path(Vcb, &fnus2, fnus, &parts, &has_stream);
         if (!NT_SUCCESS(Status)) {
             ERR("split_path returned %08lx\n", Status);
             return Status;
